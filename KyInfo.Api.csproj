@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>KyInfo-Api-8f3c2a1b-4d5e-6f70-8192-abcdef001234</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +16,21 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\\src\\KyInfo.Contracts\\KyInfo.Contracts.csproj" />
+    <ProjectReference Include="..\\src\\KyInfo.Domain\\KyInfo.Domain.csproj" />
+    <ProjectReference Include="..\\src\\KyInfo.Infrastructure\\KyInfo.Infrastructure.csproj" />
+    <ProjectReference Include="..\\src\\KyInfo.Application\\KyInfo.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      EF Core 迁移代码已“编译”进 Infrastructure 层（通过 Link 显示在 Persistence\Migrations 目录下）。
+      为避免迁移类型重复定义导致冲突，这里从 Api 项目中排除 Migrations 目录。
+    -->
+    <Compile Remove="Migrations\**\*.cs" />
   </ItemGroup>
 
 </Project>

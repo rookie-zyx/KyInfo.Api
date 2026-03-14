@@ -4,6 +4,7 @@ using KyInfo.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KyInfo.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260312080343_FixMajorTuitionPrecision")]
+    partial class FixMajorTuitionPrecision
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,57 +24,6 @@ namespace KyInfo.Api.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("KyInfo.Api.Models.ExamScore", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("EnglishScore")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("MajorId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("MajorSubjectScore")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("MathScore")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PoliticsScore")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("SchoolId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TotalScore")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Year")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MajorId");
-
-                    b.HasIndex("SchoolId");
-
-                    b.HasIndex("UserId", "Year", "SchoolId", "MajorId")
-                        .IsUnique()
-                        .HasFilter("[SchoolId] IS NOT NULL AND [MajorId] IS NOT NULL");
-
-                    b.ToTable("ExamScores");
-                });
 
             modelBuilder.Entity("KyInfo.Api.Models.Major", b =>
                 {
@@ -124,56 +76,6 @@ namespace KyInfo.Api.Migrations
                     b.HasIndex("SchoolId");
 
                     b.ToTable("Majors");
-                });
-
-            modelBuilder.Entity("KyInfo.Api.Models.RecruitInfo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ExamSubjects")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("ExtraRequirements")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<int>("MajorId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PlanCount")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("PublishedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("SchoolId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SourceUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("Year")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MajorId");
-
-                    b.HasIndex("SchoolId");
-
-                    b.HasIndex("Year", "SchoolId", "MajorId")
-                        .IsUnique();
-
-                    b.ToTable("RecruitInfos");
                 });
 
             modelBuilder.Entity("KyInfo.Api.Models.School", b =>
@@ -305,31 +207,6 @@ namespace KyInfo.Api.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("KyInfo.Api.Models.ExamScore", b =>
-                {
-                    b.HasOne("KyInfo.Api.Models.Major", "Major")
-                        .WithMany()
-                        .HasForeignKey("MajorId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("KyInfo.Api.Models.School", "School")
-                        .WithMany()
-                        .HasForeignKey("SchoolId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("KyInfo.Api.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Major");
-
-                    b.Navigation("School");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("KyInfo.Api.Models.Major", b =>
                 {
                     b.HasOne("KyInfo.Api.Models.School", "School")
@@ -337,25 +214,6 @@ namespace KyInfo.Api.Migrations
                         .HasForeignKey("SchoolId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("School");
-                });
-
-            modelBuilder.Entity("KyInfo.Api.Models.RecruitInfo", b =>
-                {
-                    b.HasOne("KyInfo.Api.Models.Major", "Major")
-                        .WithMany()
-                        .HasForeignKey("MajorId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("KyInfo.Api.Models.School", "School")
-                        .WithMany()
-                        .HasForeignKey("SchoolId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Major");
 
                     b.Navigation("School");
                 });

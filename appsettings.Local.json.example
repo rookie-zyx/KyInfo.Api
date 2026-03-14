@@ -1,0 +1,8 @@
+{
+  "Ai": {
+    "ApiKey": "replace-with-your-real-key",
+    "BaseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "Model": "qwen-plus"
+  }
+}
+
