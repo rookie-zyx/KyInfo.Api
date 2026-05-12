@@ -18,10 +18,28 @@ using KyInfo.Api.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+const string DevJwtKey = "KyInfo-Dev-ONLY-32char-minimum-secret-key!";
 
 builder.Services.Configure<AdminSeedOptions>(builder.Configuration.GetSection(AdminSeedOptions.SectionName));
 
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
+builder.Services
+    .AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
+    .PostConfigure(options =>
+    {
+        if (builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(options.Key))
+        {
+            options.Key = DevJwtKey;
+        }
+    })
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Key), "Jwt:Key 未配置。")
+    .Validate(options => options.Key.Length >= 32, "Jwt:Key 长度至少 32 字符。")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Issuer), "Jwt:Issuer 未配置。")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Audience), "Jwt:Audience 未配置。")
+    .Validate(options => options.ExpireMinutes > 0, "Jwt:ExpireMinutes 必须为正整数。")
+    .ValidateOnStart();
+
 builder.Services.AddHttpClient("OpenAi", (sp, client) =>
 {
     var opts = sp.GetRequiredService<IOptionsMonitor<AiOptions>>().CurrentValue;
@@ -137,6 +155,11 @@ builder.Services.AddCors(options =>
         var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? Array.Empty<string>();
         if (origins.Length == 0)
         {
+            if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
+            {
+                throw new InvalidOperationException("Cors:Origins 未配置。非开发环境必须显式配置允许的前端来源。");
+            }
+
             policy
                 .AllowAnyOrigin()
                 .AllowAnyHeader()
@@ -152,27 +175,13 @@ builder.Services.AddCors(options =>
 });
 
 // JWT（Key 见 docs/CONFIGURATION.md；生产必须通过 Jwt__Key 等配置提供）
-var jwtSection = builder.Configuration.GetSection("Jwt");
-var jwtKey = jwtSection["Key"];
-if (string.IsNullOrWhiteSpace(jwtKey))
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+if (builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(jwtOptions.Key))
 {
-    if (builder.Environment.IsDevelopment())
-    {
-        jwtKey = "KyInfo-Dev-ONLY-32char-minimum-secret-key!";
-    }
-    else
-    {
-        throw new InvalidOperationException(
-            "Jwt:Key 未配置。请通过环境变量 Jwt__Key、User Secrets 或机密存储设置（生产环境禁止留空）。详见 docs/CONFIGURATION.md。");
-    }
+    jwtOptions.Key = DevJwtKey;
 }
 
-if (jwtKey.Length < 32)
-{
-    throw new InvalidOperationException("Jwt:Key 长度至少 32 字符。");
-}
-
-var key = Encoding.UTF8.GetBytes(jwtKey);
+var key = Encoding.UTF8.GetBytes(jwtOptions.Key);
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -189,8 +198,8 @@ builder.Services
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSection["Issuer"],
-            ValidAudience = jwtSection["Audience"],
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
             IssuerSigningKey = new SymmetricSecurityKey(key),
             NameClaimType = JwtRegisteredClaimNames.UniqueName,
             RoleClaimType = "role"
