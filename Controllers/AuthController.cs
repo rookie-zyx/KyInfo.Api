@@ -1,6 +1,7 @@
 using KyInfo.Contracts.Auth;
 using KyInfo.Application.Services.Auth;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace KyInfo.Api.Controllers;
 
@@ -30,6 +31,7 @@ public class AuthController : ControllerBase
     /// <param name="request">包含 UserName、Email、Password 的注册请求 DTO。</param>
     /// <returns>注册结果：成功返回 200，失败返回 400。</returns>
     [HttpPost("register")]
+    [EnableRateLimiting("auth_register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
     {
         await _appService.RegisterAsync(request, cancellationToken);
@@ -43,6 +45,7 @@ public class AuthController : ControllerBase
     /// <param name="request">包含 UserNameOrEmail 与 Password 的登录请求 DTO。</param>
     /// <returns>认证成功返回 <see cref="AuthResponse"/>（含 Token），失败返回 401。</returns>
     [HttpPost("login")]
+    [EnableRateLimiting("auth_login")]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         var auth = await _appService.LoginAsync(request, cancellationToken);

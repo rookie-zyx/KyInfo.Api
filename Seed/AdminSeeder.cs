@@ -56,7 +56,7 @@ public static class AdminSeeder
                 UserName = normalizedUserName,
                 Email = normalizedEmail,
                 PasswordHash = hasher.HashPassword(options.Password),
-                Role = UserRole.Admin,
+                Role = UserRole.Root,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -65,11 +65,40 @@ public static class AdminSeeder
             return;
         }
 
-        if (options.PromoteExistingToAdmin && existing.Role != UserRole.Admin)
+        // 开发环境下，确保种子 Root 账号始终与配置保持一致：
+        // - 角色固定为 Root
+        // - 用户名/邮箱与配置同步
+        // - 密码重置为配置值
+        var changed = false;
+
+        if (!string.Equals(existing.UserName, normalizedUserName, StringComparison.Ordinal))
         {
-            existing.Role = UserRole.Admin;
+            existing.UserName = normalizedUserName;
+            changed = true;
+        }
+
+        if (!string.Equals(existing.Email, normalizedEmail, StringComparison.Ordinal))
+        {
+            existing.Email = normalizedEmail;
+            changed = true;
+        }
+
+        if (options.PromoteExistingToRoot && existing.Role != UserRole.Root)
+        {
+            existing.Role = UserRole.Root;
+            changed = true;
+        }
+
+        var resetPasswordHash = hasher.HashPassword(options.Password);
+        if (!string.Equals(existing.PasswordHash, resetPasswordHash, StringComparison.Ordinal))
+        {
+            existing.PasswordHash = resetPasswordHash;
+            changed = true;
+        }
+
+        if (changed)
+        {
             await db.SaveChangesAsync(cancellationToken);
         }
     }
 }
-

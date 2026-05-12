@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using KyInfo.Contracts.AiChat;
 using KyInfo.Infrastructure.Ai;
 
@@ -21,6 +22,7 @@ public class AiController : ControllerBase
 
     /// <summary>调用 OpenAI 兼容接口进行对话（需登录）。</summary>
     [HttpPost("chat")]
+    [EnableRateLimiting("ai_chat")]
     public async Task<ActionResult<AiChatResponseDto>> Chat([FromBody] AiChatRequestDto request, CancellationToken cancellationToken)
     {
         if (request is null)

@@ -15,6 +15,7 @@ public sealed class ErrorResponsesOperationFilter : IOperationFilter
         AddIfMissing(operation, "401", "未认证/无权限");
         AddIfMissing(operation, "403", "禁止访问");
         AddIfMissing(operation, "404", "资源不存在");
+        AddIfMissing(operation, "429", "请求过于频繁");
         AddIfMissing(operation, "500", "服务器错误");
     }
 

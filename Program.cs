@@ -1,10 +1,16 @@
 using System.Text;
+using System.Threading.RateLimiting;
+using System.IdentityModel.Tokens.Jwt;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using KyInfo.Api.Validators;
 using KyInfo.Infrastructure;
 using KyInfo.Infrastructure.Options;
 using KyInfo.Application;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
 using KyInfo.Api.Middleware;
 using KyInfo.Api.OpenApi;
@@ -32,6 +38,63 @@ builder.Services.AddKyInfoApplication();
 
 // Controllers
 builder.Services.AddControllers();
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync("{\"message\":\"请求过于频繁，请稍后再试。\"}", token);
+    };
+
+    options.AddPolicy("auth_login", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 15,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    options.AddPolicy("auth_register", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    options.AddPolicy("ai_chat", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    options.AddPolicy("admin_upload", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -88,14 +151,38 @@ builder.Services.AddCors(options =>
     });
 });
 
-// JWT
+// JWT（Key 见 docs/CONFIGURATION.md；生产必须通过 Jwt__Key 等配置提供）
 var jwtSection = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSection["Key"]!);
+var jwtKey = jwtSection["Key"];
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        jwtKey = "KyInfo-Dev-ONLY-32char-minimum-secret-key!";
+    }
+    else
+    {
+        throw new InvalidOperationException(
+            "Jwt:Key 未配置。请通过环境变量 Jwt__Key、User Secrets 或机密存储设置（生产环境禁止留空）。详见 docs/CONFIGURATION.md。");
+    }
+}
+
+if (jwtKey.Length < 32)
+{
+    throw new InvalidOperationException("Jwt:Key 长度至少 32 字符。");
+}
+
+var key = Encoding.UTF8.GetBytes(jwtKey);
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        // 显式关闭入站 claim 映射，确保 JWT 里的短名称 claim（如 "sub"、"role"）
+        // 不会被自动改写成 WS-Federation/ClaimTypes 形式。
+        // 否则 token 虽然带了 role=Admin/Root，[Authorize(Roles = "...")] 仍可能匹配失败。
+        options.MapInboundClaims = false;
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -104,7 +191,9 @@ builder.Services
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtSection["Issuer"],
             ValidAudience = jwtSection["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(key)
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            NameClaimType = JwtRegisteredClaimNames.UniqueName,
+            RoleClaimType = "role"
         };
     });
 
@@ -122,9 +211,14 @@ await AdminSeeder.TrySeedAsync(app.Services, app.Environment);
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors(CorsPolicyName);
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -132,3 +226,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program
+{
+}

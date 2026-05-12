@@ -48,7 +48,7 @@ public class ScoreLinesController : ControllerBase
     }
 
     // 后台维护用：新增分数线（后续可加权限）
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Root,Admin")]
     [HttpPost]
     public async Task<ActionResult<int>> CreateScoreLine([FromBody] ScoreLineCreateDto dto, CancellationToken cancellationToken = default)
     {

@@ -36,7 +36,7 @@ public class SchoolsController : ControllerBase
     }
 
     // 后台维护用：新增院校（后续可加权限）
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Root,Admin")]
     [HttpPost]
     public async Task<ActionResult<int>> CreateSchool([FromBody] SchoolDetailDto dto, CancellationToken cancellationToken)
     {

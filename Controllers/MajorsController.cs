@@ -34,7 +34,7 @@ public class MajorsController : ControllerBase
     }
 
     // 后台维护用：新增专业
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Root,Admin")]
     [HttpPost]
     public async Task<ActionResult<int>> CreateMajor([FromBody] MajorDetailDto dto, CancellationToken cancellationToken = default)
     {

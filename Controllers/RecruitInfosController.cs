@@ -35,7 +35,7 @@ public class RecruitInfosController : ControllerBase
     }
 
     // 后台维护用：新增报考信息 / 招生简章
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Root,Admin")]
     [HttpPost]
     public async Task<ActionResult<int>> CreateRecruitInfo([FromBody] RecruitInfoCreateDto dto, CancellationToken cancellationToken = default)
     {
