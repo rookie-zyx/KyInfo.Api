@@ -1,11 +1,14 @@
+using KyInfo.Api.Infrastructure;
 using KyInfo.Application.Services.Recommendations;
 using KyInfo.Contracts.Recommendations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KyInfo.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class RecommendationsController : ControllerBase
 {
     private readonly IRecommendationAppService _appService;
@@ -23,6 +26,18 @@ public class RecommendationsController : ControllerBase
         [FromQuery] int top = 30,
         CancellationToken cancellationToken = default)
     {
+        var actorId = JwtUserClaims.GetUserId(User);
+        if (!actorId.HasValue)
+        {
+            return Unauthorized();
+        }
+
+        var role = JwtUserClaims.GetRole(User);
+        if (!JwtUserClaims.IsStaff(role) && userId != actorId.Value)
+        {
+            return Forbid();
+        }
+
         var request = new RecommendationRequestDto
         {
             UserId = userId,
@@ -33,4 +48,3 @@ public class RecommendationsController : ControllerBase
         return await _appService.GetRecommendationsAsync(request, cancellationToken);
     }
 }
-
