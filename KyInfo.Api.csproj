@@ -5,13 +5,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>KyInfo-Api-8f3c2a1b-4d5e-6f70-8192-abcdef001234</UserSecretsId>
+    <!-- Visual Studio 默认用 http，避免 https 重定向干扰 Blazor 联调 -->
+    <LaunchProfile>http</LaunchProfile>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.24" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.24" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.24" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.24">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -20,18 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\\src\\KyInfo.Contracts\\KyInfo.Contracts.csproj" />
-    <ProjectReference Include="..\\src\\KyInfo.Domain\\KyInfo.Domain.csproj" />
-    <ProjectReference Include="..\\src\\KyInfo.Infrastructure\\KyInfo.Infrastructure.csproj" />
-    <ProjectReference Include="..\\src\\KyInfo.Application\\KyInfo.Application.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!--
-      EF Core 迁移代码已“编译”进 Infrastructure 层（通过 Link 显示在 Persistence\Migrations 目录下）。
-      为避免迁移类型重复定义导致冲突，这里从 Api 项目中排除 Migrations 目录。
-    -->
-    <Compile Remove="Migrations\**\*.cs" />
+    <ProjectReference Include="../src/KyInfo.Contracts/KyInfo.Contracts.csproj" />
+    <ProjectReference Include="../src/KyInfo.Domain/KyInfo.Domain.csproj" />
+    <ProjectReference Include="../src/KyInfo.Infrastructure/KyInfo.Infrastructure.csproj" />
+    <ProjectReference Include="../src/KyInfo.Application/KyInfo.Application.csproj" />
   </ItemGroup>
 
 </Project>

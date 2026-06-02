@@ -240,18 +240,28 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-await AdminSeeder.TrySeedAsync(app.Services, app.Environment);
-
 if (app.Environment.IsDevelopment())
 {
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.MigrateAsync();
+        await AdminSeeder.TrySeedAsync(app.Services, app.Environment);
+    }
+    catch (Exception ex)
+    {
+        var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+        logger.LogCritical(
+            ex,
+            "数据库初始化失败。请先启动 PostgreSQL：在项目目录执行 docker compose up -d postgres");
+        throw;
+    }
 }
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-if (!app.Environment.IsEnvironment("Testing"))
+if (!app.Environment.IsEnvironment("Testing") && !app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
@@ -264,6 +274,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
+    .AllowAnonymous();
 
 app.Run();
 

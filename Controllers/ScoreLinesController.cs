@@ -35,9 +35,17 @@ public class ScoreLinesController : ControllerBase
         [FromQuery] int? schoolId,
         [FromQuery] int? majorId,
         [FromQuery] bool? isNational,
+        [FromQuery] string? schoolName,
+        [FromQuery] string? majorName,
         CancellationToken cancellationToken = default)
     {
-        return await _appService.GetTrendAsync(schoolId, majorId, isNational, cancellationToken);
+        return await _appService.GetTrendAsync(
+            schoolId,
+            majorId,
+            isNational,
+            schoolName,
+            majorName,
+            cancellationToken);
     }
 
     // GET: api/scorelines/5
